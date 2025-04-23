@@ -1,30 +1,48 @@
-use crate::models::{Board, Cell};
+use super::Cell;
+use super::Board;
 
-pub fn parse_input(input: &str) -> Option<(usize, usize)> {
+
+
+#[derive(Debug)]
+pub enum ParseError {
+    MoreChar,
+    LessChar,
+    InvalidFormat,
+    UnknownChars,
+}
+
+
+pub fn parse_input(input: &str) -> Result<(usize, usize), ParseError> {
     let input = input.trim().to_lowercase();
-    if input.len() != 2 {
-        return None;
-    }
+    let chars: Vec<char> = input.chars().collect();
 
-    let mut chars = input.chars();
-    let first = chars.next()?;
-    let second = chars.next()?;
+    match chars.len() {
+        0 | 1 => Err(ParseError::LessChar),
+        2 => {
+            if !chars.iter().all(|c| "123abc".contains(*c)) {
+                return Err(ParseError::UnknownChars);
+            }
 
-    if first.is_alphabetic() && second.is_numeric() {
-        let col = first as usize - 'a' as usize;
-        let row = second.to_digit(10)? as usize - 1;
-        if row < 3 && col < 3 {
-            return Some((row, col));
+            if let (Some(first), Some(second)) = (chars.get(0), chars.get(1)) {
+                if "123".contains(*first) && "abc".contains(*second) {
+                    return Ok((
+                        first.to_digit(10).unwrap() as usize - 1,
+                        *second as usize - 'a' as usize
+                    ));
+                }
+
+                if "abc".contains(*first) && "123".contains(*second) {
+                    return Ok((
+                        second.to_digit(10).unwrap() as usize - 1,
+                        *first as usize - 'a' as usize
+                    ));
+                }
+            }
+
+            Err(ParseError::InvalidFormat)
         }
-    } else if first.is_numeric() && second.is_alphabetic() {
-        let row = first.to_digit(10)? as usize - 1;
-        let col = second as usize - 'a' as usize;
-        if row < 3 && col < 3 {
-            return Some((row, col));
-        }
+        _ => Err(ParseError::MoreChar),
     }
-
-    None
 }
 
 pub fn check_win(board: &Board, player: Cell) -> bool {
